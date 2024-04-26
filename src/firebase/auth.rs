@@ -3,41 +3,42 @@ pub mod auth {
     use std::collections::HashMap;
 
     use firebase_rs::*;
+    use log::info;
     use serde::{Deserialize, Serialize};
 
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct User {
-        pub name: String,
-        pub age: u32,
-        pub email: String,
-    }
+    use crate::user_types::users::FirebaseUser;
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Response {
         pub name: String,
     }
 
-    pub async fn set_user(firebase_client: &Firebase, user: &User) -> Response {
+    pub async fn set_user(firebase_client: &Firebase, user: &FirebaseUser) -> Response {
         let firebase = firebase_client.at("users");
-        let _users = firebase.set::<User>(&user).await;
+        let _users = firebase.set::<FirebaseUser>(&user).await;
         return string_to_response(&_users.unwrap().data);
     }
 
-    pub async fn get_users(firebase_client: &Firebase) -> HashMap<String, User> {
+    pub async fn get_users(firebase_client: &Firebase) -> HashMap<String, FirebaseUser> {
         let firebase = firebase_client.at("users");
-        let users = firebase.get::<HashMap<String, User>>().await;
+        let users = firebase.get::<HashMap<String, FirebaseUser>>().await;
+        info!("Fetching Users.");
         return users.unwrap();
     }
 
-    pub async fn get_user(firebase_client: &Firebase, id: &String) -> User {
+    pub async fn get_user(firebase_client: &Firebase, id: &String) -> FirebaseUser {
         let firebase = firebase_client.at("users").at(&id);
-        let user = firebase.get::<User>().await;
+        let user = firebase.get::<FirebaseUser>().await;
         return user.unwrap();
     }
 
-    pub async fn update_user(firebase_client: &Firebase, id: &String, user: &User) -> User {
+    pub async fn update_user(
+        firebase_client: &Firebase,
+        id: &String,
+        user: &FirebaseUser,
+    ) -> FirebaseUser {
         let firebase = firebase_client.at("users").at(&id);
-        let _user = firebase.update::<User>(&user).await;
+        let _user = firebase.update::<FirebaseUser>(&user).await;
         return string_to_user(&_user.unwrap().data);
 
         // Example
@@ -61,7 +62,7 @@ pub mod auth {
     }
 
     //convert a string to a user
-    fn string_to_user(s: &str) -> User {
+    fn string_to_user(s: &str) -> FirebaseUser {
         serde_json::from_str(s).unwrap()
     }
 }
