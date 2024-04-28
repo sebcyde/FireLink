@@ -4,6 +4,7 @@ pub mod types {
     #[derive(Serialize, Deserialize, Clone, Debug)]
     pub struct FireLinkConfig {
         pub username: String,
+        pub firebase_id: String,
     }
 
     impl FireLinkConfig {
@@ -17,6 +18,7 @@ pub mod types {
         fn default() -> Self {
             FireLinkConfig {
                 username: String::new(),
+                firebase_id: String::new(),
             }
         }
     }

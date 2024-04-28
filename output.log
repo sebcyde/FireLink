@@ -28,3 +28,5 @@
 [INFO fire_link::firebase::auth::auth] Fetching Users.
 [DEBUG reqwest::connect] starting new connection: https://firelink-50aeb-default-rtdb.europe-west1.firebasedatabase.app/
 [INFO fire_link::config::fire_link_config::config] Config updated succesfully.
+[WARN fire_link::config::fire_link_config::config] Empty user config detected.
+[INFO fire_link::config::fire_link_config::config] Config created succesfully.

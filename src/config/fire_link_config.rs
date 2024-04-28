@@ -7,7 +7,7 @@ pub mod config {
     use firebase_rs::Firebase;
     use log::{error, info, warn};
 
-    use crate::firebase::auth::auth::{get_users, set_user};
+    use crate::firebase::auth::auth::{get_users, set_user, Response};
     use crate::types::types::FireLinkConfig;
     use crate::user_types::users::FirebaseUser;
     use crate::utils::input::input::{create_input_prompt, get_user_input};
@@ -74,64 +74,72 @@ pub mod config {
     }
 
     pub async fn check_config() -> FireLinkConfig {
-        let firelink_config: FireLinkConfig = get_config_data();
-        println!("FireLinkConfig: {:?}", &firelink_config);
+        if let Ok(firelink_config) = get_config_data() {
+            println!("FireLinkConfig: {:?}", &firelink_config);
 
-        if firelink_config.username.is_empty() {
-            warn!("Empty username found in config.");
+            if firelink_config.any_field_empty() {
+                warn!("Empty field found in config.");
 
-            loop {
-                let new_username: String = get_user_input("Please enter a new username:");
-                let username_prompt: String = format!("You entered {}. Is this ok?", &new_username);
-                let options: Vec<&str> = vec!["No", "Yes"];
+                create_default_config_files();
 
-                let response: String = create_input_prompt(&username_prompt, options);
-                println!("RESPONSE: {}", response);
+                loop {
+                    let new_username: String = get_user_input("Please enter a new username:");
+                    let username_prompt: String =
+                        format!("You entered {}. Is this ok?", &new_username);
+                    let options: Vec<&str> = vec!["No", "Yes"];
 
-                if response.eq_ignore_ascii_case("yes") {
-                    // Check if it exists in the database for anyone else
-                    println!("Checking if username is available");
+                    let response: String = create_input_prompt(&username_prompt, options);
+                    println!("RESPONSE: {}", response);
 
-                    let firebase: Firebase = Firebase::new(
+                    if response.eq_ignore_ascii_case("yes") {
+                        // Check if it exists in the database for anyone else
+                        println!("Checking if username is available");
+
+                        let firebase: Firebase = Firebase::new(
                         "https://firelink-50aeb-default-rtdb.europe-west1.firebasedatabase.app/",
                     )
                     .unwrap();
 
-                    let users: HashMap<String, crate::user_types::users::FirebaseUser> =
-                        get_users(&firebase).await;
+                        let users: HashMap<String, crate::user_types::users::FirebaseUser> =
+                            get_users(&firebase).await;
 
-                    let mut acceptable_username: bool = true;
+                        let mut acceptable_username: bool = true;
 
-                    for entry in users.iter() {
-                        let user: &FirebaseUser = entry.1;
-                        if user.name.eq_ignore_ascii_case(&new_username) {
-                            println!(
-                                "Username is already taken. Please enter a different username."
-                            );
+                        for entry in users.iter() {
+                            let user: &FirebaseUser = entry.1;
+                            if user.name.eq_ignore_ascii_case(&new_username) {
+                                println!(
+                                    "Username is already taken. Please enter a different username."
+                                );
 
-                            acceptable_username = false;
-                        };
-                    }
+                                acceptable_username = false;
+                            };
+                        }
 
-                    if acceptable_username {
-                        // Create FireBase User and update in local config
-                        let new_user: FirebaseUser = FirebaseUser {
-                            name: new_username.clone(),
-                        };
+                        if acceptable_username {
+                            // Create FireBase User and update in local config
+                            let new_user: FirebaseUser = FirebaseUser {
+                                name: new_username.clone(),
+                            };
 
-                        let new_config: FireLinkConfig = FireLinkConfig {
-                            username: new_username.clone(),
-                        };
+                            let new_user_res: Response = set_user(&firebase, &new_user).await;
 
-                        set_user(&firebase, &new_user).await;
-                        update_config(new_config);
-                        break;
+                            let new_config: FireLinkConfig = FireLinkConfig {
+                                username: new_username.clone(),
+                                firebase_id: new_user_res.name.clone(),
+                            };
+
+                            update_config(new_config);
+                            break;
+                        }
                     }
                 }
             }
+        } else {
+            create_config_dir_and_files();
         }
 
-        return get_config_data();
+        return get_config_data().unwrap();
     }
 
     pub fn _check_config() -> bool {
@@ -163,13 +171,13 @@ pub mod config {
         }
     }
 
-    pub fn get_config_data() -> FireLinkConfig {
+    pub fn get_config_data() -> Result<FireLinkConfig, serde_json::Error> {
         let config_file_path: PathBuf = get_firelink_config_file_path();
         if !config_file_path.exists() {
             create_default_config_files();
         }
+
         let config_value: &str = &read_to_string(config_file_path).unwrap();
-        let config: FireLinkConfig = serde_json::from_str(config_value).unwrap();
-        return config;
+        return serde_json::from_str(config_value);
     }
 }

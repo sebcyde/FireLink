@@ -5,6 +5,7 @@ mod user_types;
 mod utils;
 
 use config::fire_link_config::config::check_config;
+use firebase::storage::uploads::get_storage_buckets;
 use firebase_rs::Firebase;
 use log::warn;
 use types::types::FireLinkConfig;
@@ -19,6 +20,8 @@ async fn main() {
 
     let firelink_config: FireLinkConfig = check_config().await;
     println!("FireLinkConfig: {:?}", &firelink_config);
+
+    get_storage_buckets().await;
 
     // let user = User {
     //     name: "JTSC".to_string(),
