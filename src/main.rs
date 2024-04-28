@@ -18,7 +18,7 @@ async fn main() {
     _ = setup_logger();
 
     let firelink_config: FireLinkConfig = check_config().await;
-    println!("New FireLinkConfig: {:?}", &firelink_config);
+    println!("FireLinkConfig: {:?}", &firelink_config);
 
     // let user = User {
     //     name: "JTSC".to_string(),
